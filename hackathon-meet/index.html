@@ -13,6 +13,44 @@
     html, body { height: 100%; }
     body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
     video { aspect-ratio: 16 / 9; background: #0b0f14; }
+    .is-speaking {
+      box-shadow: 0 0 15px 5px #22c55e; /* green-500 */
+      border-color: #22c55e;
+    }
+    .video-container {
+      position: relative;
+    }
+    .video-status-overlay {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 0.5rem;
+      border-radius: 50%;
+    }
+    .is-muted .video-status-overlay.mute-indicator,
+    .camera-off .video-status-overlay.camera-indicator {
+      display: block;
+    }
+    .loading-spinner {
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 4px solid #3b82f6; /* blue-500 */
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 2rem auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .video-controls button, .is-speaking {
+      transition: all 0.2s ease-in-out;
+    }
   </style>
 </head>
 <body class="min-h-full bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -31,9 +69,25 @@
 
     <main class="flex-1 mx-auto w-full max-w-6xl px-4 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
       <section class="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div class="px-3 py-2 text-sm font-medium bg-slate-100 dark:bg-slate-800/60">You</div>
-        <div class="aspect-video bg-black">
+        <div class="px-3 py-2 text-sm font-medium bg-slate-100 dark:bg-slate-800/60 flex justify-between items-center">
+          <span>You</span>
+          <div class="video-controls flex items-center gap-2">
+            <button id="muteBtn" class="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+              <svg class="size-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14q.825 0 1.413-.588T14 12V6q0-.825-.588-1.413T12 4q-.825 0-1.413.588T10 6v6q0 .825.588 1.413T12 14Zm-1 7v-3.075q-2.6-.35-4.3-2.325T5 11H7q0 2.075 1.463 3.538T12 16q2.075 0 3.538-1.463T17 11h2q0 2.5-1.7 4.475T13 17.925V21h-2Zm1-6q.425 0 .713-.288T13 12V6q0-.425-.288-.713T12 5q-.425 0-.713.288T11 6v6q0 .425.288.713T12 8Z"/></svg>
+            </button>
+            <button id="cameraBtn" class="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+              <svg class="size-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l2.29 2.29c.63.63 1.71.18 1.71-.71V8.91c0-.89-1.08-1.34-1.71-.71L17 10.5zM15 16H5V8h10v8z"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="aspect-video bg-black video-container" id="local-video-container">
           <video id="localVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
+          <div class="video-status-overlay mute-indicator">
+            <svg class="size-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14q.825 0 1.413-.588T14 12V6q0-.825-.588-1.413T12 4q-.825 0-1.413.588T10 6v6q0 .825.588 1.413T12 14Zm-1 7v-3.075q-2.6-.35-4.3-2.325T5 11H7q0 2.075 1.463 3.538T12 16q2.075 0 3.538-1.463T17 11h2q0 2.5-1.7 4.475T13 17.925V21h-2Zm1-6q.425 0 .713-.288T13 12V6q0-.425-.288-.713T12 5q-.425 0-.713.288T11 6v6q0 .425.288.713T12 8Z"/></svg>
+          </div>
+          <div class="video-status-overlay camera-indicator">
+            <svg class="size-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l2.29 2.29c.63.63 1.71.18 1.71-.71V8.91c0-.89-1.08-1.34-1.71-.71L17 10.5zM15 16H5V8h10v8z"/></svg>
+          </div>
         </div>
       </section>
 
@@ -43,6 +97,13 @@
       </section>
 
       <section class="md:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="rounded-lg border border-slate-200 dark:border-slate-800 p-4 lg:col-span-2">
+          <h2 class="text-sm font-semibold mb-2">AI Summary</h2>
+          <div id="summary-box" class="text-sm text-slate-600 dark:text-slate-300">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+
         <div class="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
           <h2 class="text-sm font-semibold mb-2">Stats</h2>
           <div id="stats" class="text-xs font-mono leading-6 text-slate-700 dark:text-slate-300"></div>

@@ -1,13 +1,31 @@
-const socket = io("https://4dadc54b47bf.ngrok-free.app");
+const socket = io("https://untraceable-reba-lowerable.ngrok-free.dev");
 
 const localVideo = document.getElementById("localVideo");
+const localVideoContainer = document.getElementById("local-video-container");
 const remoteVideosContainer = document.getElementById('remote-videos');
 const engagementDiv = document.getElementById("engagementScore");
 const leaveBtn = document.getElementById("leaveBtn");
 const statsDiv = document.getElementById("stats");
+const muteBtn = document.getElementById("muteBtn");
+const cameraBtn = document.getElementById("cameraBtn");
+const summaryBox = document.getElementById("summary-box");
 
 const peerConnections = {};
 let localStream;
+let audioContext;
+const speakingThreshold = -50; // dB
+
+// Mock summary generation
+setTimeout(() => {
+  summaryBox.innerHTML = `
+    <p><strong>Meeting Summary:</strong> The team discussed the Q3 roadmap and decided on the main priorities. Alice will take the lead on the new feature development, and Bob will handle the marketing plan.</p>
+    <p class="mt-2"><strong>Action Items:</strong></p>
+    <ul class="list-disc pl-5">
+      <li><strong>Alice:</strong> Draft the initial project spec for the new feature.</li>
+      <li><strong>Bob:</strong> Create a draft of the Q3 marketing plan.</li>
+    </ul>
+  `;
+}, 10000); // Show summary after 10 seconds
 
 // Load face-api.js models
 async function loadFaceAPI() {
@@ -22,6 +40,7 @@ async function initMedia() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localVideo.srcObject = localStream;
+    setupVolumeMonitoring(localStream, localVideoContainer);
   } catch (err) {
     console.error("Error accessing media devices:", err);
     alert(`Error accessing media devices: ${err.name} - ${err.message}`);
@@ -60,12 +79,28 @@ function createPeerConnection(socketId, isCaller) {
             remoteVideo.id = `video-${socketId}`;
             remoteVideo.autoplay = true;
             remoteVideo.playsinline = true;
-            remoteVideosContainer.appendChild(remoteVideo);
+
+            const videoContainer = document.createElement('div');
+            videoContainer.id = `video-container-${socketId}`;
+            videoContainer.classList.add('video-container', 'rounded-lg', 'overflow-hidden');
+            videoContainer.appendChild(remoteVideo);
+
+            const nameOverlay = document.createElement('div');
+            nameOverlay.classList.add('absolute', 'bottom-0', 'left-0', 'bg-black/50', 'text-white', 'text-xs', 'px-2', 'py-1');
+            nameOverlay.innerText = `Peer ${socketId.substring(0, 5)}`;
+            videoContainer.appendChild(nameOverlay);
+
+            remoteVideosContainer.appendChild(videoContainer);
         }
         if (!remoteVideo.srcObject) {
             remoteVideo.srcObject = new MediaStream();
         }
         remoteVideo.srcObject.addTrack(event.track);
+
+        if (event.track.kind === 'audio') {
+            const remoteStream = new MediaStream([event.track]);
+            setupVolumeMonitoring(remoteStream, document.getElementById(`video-container-${socketId}`));
+        }
     };
 
     if (localStream) {
@@ -128,9 +163,9 @@ socket.on("peer-disconnected", data => {
         pc.close();
         delete peerConnections[data.socketId];
     }
-    const remoteVideo = document.getElementById(`video-${data.socketId}`);
-    if (remoteVideo) {
-        remoteVideo.remove();
+    const remoteVideoContainer = document.getElementById(`video-container-${data.socketId}`);
+    if (remoteVideoContainer) {
+        remoteVideoContainer.remove();
     }
 });
 
@@ -146,6 +181,62 @@ leaveBtn.onclick = () => {
   socket.disconnect();
   console.log("Call ended");
 };
+
+muteBtn.onclick = () => {
+  const audioTrack = localStream.getAudioTracks()[0];
+  if (audioTrack) {
+    audioTrack.enabled = !audioTrack.enabled;
+    localVideoContainer.classList.toggle('is-muted', !audioTrack.enabled);
+    muteBtn.innerHTML = audioTrack.enabled
+      ? `<svg class="size-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14q.825 0 1.413-.588T14 12V6q0-.825-.588-1.413T12 4q-.825 0-1.413.588T10 6v6q0 .825.588 1.413T12 14Zm-1 7v-3.075q-2.6-.35-4.3-2.325T5 11H7q0 2.075 1.463 3.538T12 16q2.075 0 3.538-1.463T17 11h2q0 2.5-1.7 4.475T13 17.925V21h-2Zm1-6q.425 0 .713-.288T13 12V6q0-.425-.288-.713T12 5q-.425 0-.713.288T11 6v6q0 .425.288.713T12 8Z"/></svg>`
+      : `<svg class="size-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="m14.825 16.25-2.1-2.1q.275-.275.425-.625t.15-.725V6q0-.825-.588-1.413T12 4q-.825 0-1.413.588T10 6v4.175l-1.8-1.8H7q0 2.5 1.7 4.475T13 17.925V21h-2v-3.075q-.525-.075-1.025-.25t-.975-.425l-1.425 1.425q1.15.8 2.425 1.287T12 20q2.925 0 5.213-1.763T19 13.15V11h-2v.15q0 .825-.363 1.563t-.987 1.287ZM21.9 21.9 20.5 23.3l-4.5-4.5q-1.05.7-2.25 1.05T11.5 20.5v-2.05q.4-.05.775-.175t.725-.325L12 16.5l-2.625-2.625L3.5 18.05l-1.4-1.4L7.95 10.8l-3.1-3.1L3.45 6.3 2.05 4.9 3.45 3.5l18.45 18.4Z"/></svg>`;
+  }
+};
+
+cameraBtn.onclick = () => {
+  const videoTrack = localStream.getVideoTracks()[0];
+  if (videoTrack) {
+    videoTrack.enabled = !videoTrack.enabled;
+    localVideoContainer.classList.toggle('camera-off', !videoTrack.enabled);
+    cameraBtn.innerHTML = videoTrack.enabled
+      ? `<svg class="size-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l2.29 2.29c.63.63 1.71.18 1.71-.71V8.91c0-.89-1.08-1.34-1.71-.71L17 10.5zM15 16H5V8h10v8z"/></svg>`
+      : `<svg class="size-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l2.29 2.29c.63.63 1.71.18 1.71-.71V8.91c0-.89-1.08-1.34-1.71-.71L17 10.5zM15 16H5V8h10v8zM2 2.27L4.28 4.55l-1.73 1.73L1 7.83V19c0 .55.45 1 1 1h13.17l2.55 2.55L18.27 24l-16-16L2.27 2z"/></svg>`;
+  }
+};
+
+function setupVolumeMonitoring(stream, targetElement) {
+    if (!audioContext) {
+        audioContext = new AudioContext();
+    }
+    if (stream.getAudioTracks().length === 0) return;
+
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.minDecibels = -100;
+    analyser.maxDecibels = 0;
+    analyser.smoothingTimeConstant = 0.85;
+    source.connect(analyser);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    function getVolume() {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        dataArray.forEach(value => sum += value);
+        const avg = sum / dataArray.length;
+        // Convert to dB. This is a simplification.
+        const volume = 20 * Math.log10(avg / 255);
+        
+        if (volume > speakingThreshold) {
+            targetElement.classList.add('is-speaking');
+        } else {
+            targetElement.classList.remove('is-speaking');
+        }
+        requestAnimationFrame(getVolume);
+    }
+    getVolume();
+}
 
 async function main() {
     await loadFaceAPI();

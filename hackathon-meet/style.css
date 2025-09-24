@@ -1,0 +1,277 @@
+/* --- DESIGN TOKENS --- */
+:root {
+  --bg-gradient-start: rgba(20, 20, 30, 1);
+  --bg-gradient-end: rgba(10, 10, 15, 1);
+  --accent-color: #8A2BE2; /* Vibrant Purple */
+  --accent-glow: rgba(138, 43, 226, 0.6);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --text-primary: #f0f0f5;
+  --text-secondary: #a0a0b0;
+  --red: #e53e3e;
+  --green: #38a169;
+  --orange: #dd6b20;
+  --font-family: 'Inter', sans-serif;
+}
+
+/* --- BASE & LAYOUT --- */
+body {
+  background-color: var(--bg-gradient-end);
+  background-image: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  margin: 0;
+  overflow: hidden;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  grid-template-rows: 1fr;
+  height: 100vh;
+  padding: 20px;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-auto-rows: min-content;
+  gap: 15px;
+  overflow-y: auto;
+}
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+/* --- VIDEO ELEMENTS --- */
+.video-container {
+  position: relative;
+  background: #000;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.name-tag {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Active Speaker Animation */
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 6px 2px var(--accent-glow); }
+  70% { box-shadow: 0 0 24px 8px var(--accent-glow); }
+  100% { box-shadow: 0 0 6px 2px var(--accent-glow); }
+}
+
+.video-container.is-speaking {
+  border-color: var(--accent-color);
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+/* --- CONTROL BAR --- */
+.control-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  padding: 10px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  z-index: 100;
+}
+
+.control-bar button {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+  box-shadow: 5px 5px 10px rgba(0,0,0,0.2), -5px -5px 10px rgba(255,255,255,0.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.control-bar button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.control-bar button:hover {
+  transform: translateY(-3px);
+  box-shadow: 7px 7px 15px rgba(0,0,0,0.25), -7px -7px 15px rgba(255,255,255,0.05);
+}
+
+.control-bar button:active {
+  transform: translateY(0);
+  box-shadow: inset 3px 3px 5px rgba(0,0,0,0.3), inset -3px -3px 5px rgba(255,255,255,0.05);
+}
+
+.control-bar button.is-active {
+  background: var(--accent-color);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.control-bar button.leave-btn {
+  background: var(--red);
+}
+
+/* --- DASHBOARD PANELS --- */
+.dashboard-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.dashboard-panel h3 {
+  margin: 0 0 15px 0;
+  font-weight: 600;
+  font-size: 16px;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 10px;
+}
+
+/* AI Insights Panel (Radial Progress) */
+.insight-metrics {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 5px;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.progress-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 8;
+}
+
+.progress-ring-circle {
+  fill: none;
+  stroke: var(--accent-color);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  /* --progress is a custom property set by JS (0-100) */
+  stroke-dasharray: calc(var(--progress) * 2.83) 283;
+  transition: stroke-dasharray 0.5s ease-out;
+  filter: drop-shadow(0 0 5px var(--accent-glow));
+}
+
+/* Live Transcript Panel */
+.transcript-content {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+@keyframes fade-slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.transcript-line {
+  margin: 0 0 10px 0;
+  animation: fade-slide-in 0.4s ease-out;
+}
+
+.transcript-line span {
+  font-weight: 600;
+  color: var(--accent-color);
+  margin-right: 5px;
+}
+
+/* Connection Stats Panel */
+.connection-stats ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.connection-stats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.connection-stats li span:last-child {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-left: auto;
+}
+
+#quality-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.quality-excellent { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.quality-good { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+.quality-poor { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+/* --- RESPONSIVENESS --- */
+@media (max-width: 1024px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    padding-bottom: 100px; /* Space for control bar */
+  }
+  .dashboard {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .dashboard-panel {
+    min-width: 280px;
+  }
+}
