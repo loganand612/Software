@@ -1,11 +1,9 @@
 
-[![IdeaQuest Meet](screenshot.png)](screenshot.png)
 
 # IdeaQuest Meet
 
 A modern, AI-powered two-way video call platform built with Node.js, Express, Socket.IO, WebRTC, and a React+Tailwind UI. Easily host, join, and analyze meetings with real-time engagement metrics and AI-generated summaries.
-
-[![IdeaQuest Meet](https://github.com/thilak0105/Idea_Quest/raw/master/hackathon-meet/screenshot.png)](https://github.com/thilak0105/Idea_Quest/tree/master/hackathon-meet)
+<img width="1232" height="682" alt="APP" src="https://github.com/user-attachments/assets/a574a0ca-5eea-4802-8e29-c47bde55ef05" />
 
 ---
 
@@ -102,7 +100,8 @@ MIT
 
 ## 👥 Contributors
 - Thilak L
-- Your Team
+- Loganand S
+- Vidhun K S
 
 ---
 
