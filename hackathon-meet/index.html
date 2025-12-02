@@ -81,6 +81,10 @@
           </div>
         </div>
         <div class="aspect-video bg-black video-container" id="local-video-container">
+          <div id="camera-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white text-sm gap-3">
+            <div class="loading-spinner"></div>
+            <p>Connecting camera…</p>
+          </div>
           <video id="localVideo" class="w-full h-full object-cover" autoplay playsinline muted></video>
           <div class="video-status-overlay mute-indicator">
             <svg class="size-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14q.825 0 1.413-.588T14 12V6q0-.825-.588-1.413T12 4q-.825 0-1.413.588T10 6v6q0 .825.588 1.413T12 14Zm-1 7v-3.075q-2.6-.35-4.3-2.325T5 11H7q0 2.075 1.463 3.538T12 16q2.075 0 3.538-1.463T17 11h2q0 2.5-1.7 4.475T13 17.925V21h-2Zm1-6q.425 0 .713-.288T13 12V6q0-.425-.288-.713T12 5q-.425 0-.713.288T11 6v6q0 .425.288.713T12 8Z"/></svg>
@@ -97,10 +101,26 @@
       </section>
 
       <section class="md:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div class="rounded-lg border border-slate-200 dark:border-slate-800 p-4 lg:col-span-2">
-          <h2 class="text-sm font-semibold mb-2">AI Summary</h2>
-          <div id="summary-box" class="text-sm text-slate-600 dark:text-slate-300">
-            <div class="loading-spinner"></div>
+        <div class="rounded-lg border border-slate-200 dark:border-slate-800 p-4 lg:col-span-2 space-y-3">
+          <h2 class="text-sm font-semibold">AI Summary</h2>
+          <div>
+            <label for="notesInput" class="block text-xs font-medium text-slate-500 mb-1">
+              Meeting notes for AI (bullets or short sentences)
+            </label>
+            <textarea
+              id="notesInput"
+              class="w-full min-h-20 rounded-md border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/80 px-2 py-1 text-xs resize-y"
+              placeholder="- Discussed roadmap\n- Decisions and owners\n- Risks, blockers, next steps"
+            ></textarea>
+            <button
+              id="generateSummaryBtn"
+              class="mt-2 inline-flex items-center gap-2 rounded-md bg-sky-600 text-white px-3 py-1.5 text-xs font-medium shadow hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              Generate AI summary
+            </button>
+          </div>
+          <div id="summary-box" class="text-sm text-slate-600 dark:text-slate-300 border-t border-slate-200 dark:border-slate-800 pt-3">
+            <div class="text-xs text-slate-500">AI summary will appear here.</div>
           </div>
         </div>
 

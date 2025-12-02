@@ -1,4 +1,4 @@
-const socket = io("https://untraceable-reba-lowerable.ngrok-free.dev");
+const socket = io();
 
 const localVideo = document.getElementById("localVideo");
 const localVideoContainer = document.getElementById("local-video-container");
@@ -9,23 +9,174 @@ const statsDiv = document.getElementById("stats");
 const muteBtn = document.getElementById("muteBtn");
 const cameraBtn = document.getElementById("cameraBtn");
 const summaryBox = document.getElementById("summary-box");
+const cameraLoading = document.getElementById("camera-loading");
+const notesInput = document.getElementById("notesInput");
+const generateSummaryBtn = document.getElementById("generateSummaryBtn");
+
+const hostContext = getOrPromptHostContext();
 
 const peerConnections = {};
+const peerInfo = {}; // socketId -> { email }
 let localStream;
 let audioContext;
 const speakingThreshold = -50; // dB
 
-// Mock summary generation
-setTimeout(() => {
-  summaryBox.innerHTML = `
-    <p><strong>Meeting Summary:</strong> The team discussed the Q3 roadmap and decided on the main priorities. Alice will take the lead on the new feature development, and Bob will handle the marketing plan.</p>
-    <p class="mt-2"><strong>Action Items:</strong></p>
-    <ul class="list-disc pl-5">
-      <li><strong>Alice:</strong> Draft the initial project spec for the new feature.</li>
-      <li><strong>Bob:</strong> Create a draft of the Q3 marketing plan.</li>
-    </ul>
-  `;
-}, 10000); // Show summary after 10 seconds
+// AI summary generation: send notes to backend, display + store result
+if (generateSummaryBtn) {
+  generateSummaryBtn.addEventListener("click", async () => {
+    const notes = (notesInput?.value || "").trim();
+    const ctx = hostContext || getOrPromptHostContext();
+
+    if (!notes) {
+      alert("Please enter some meeting notes for the AI to summarize.");
+      return;
+    }
+
+    generateSummaryBtn.disabled = true;
+    const originalText = generateSummaryBtn.textContent;
+    generateSummaryBtn.textContent = "Generating…";
+
+    summaryBox.innerHTML = `<div class="loading-spinner"></div><p class="mt-2 text-xs text-slate-500">Generating AI summary…</p>`;
+
+    try {
+      const response = await fetch("/api/generate-summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          notes,
+          hostEmail: ctx?.email,
+          meetingDate: ctx?.meetingDate,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok || !data.summaryHtml) {
+        console.error("AI summary error", data);
+        alert("AI summary failed. Check server logs.");
+        summaryBox.innerHTML =
+          '<p class="text-xs text-rose-500">AI summary failed. Please try again.</p>';
+        return;
+      }
+
+      summaryBox.innerHTML = data.summaryHtml;
+      saveSummaryToBackend(data.summaryHtml);
+    } catch (err) {
+      console.error("Error calling /api/generate-summary:", err);
+      alert("Error contacting AI summary service. Check console/server.");
+      summaryBox.innerHTML =
+        '<p class="text-xs text-rose-500">Could not reach AI summary service.</p>';
+    } finally {
+      generateSummaryBtn.disabled = false;
+      generateSummaryBtn.textContent = originalText || "Generate AI summary";
+    }
+  });
+}
+
+function getOrCreateMeetingId() {
+  let meetingId = window.sessionStorage.getItem("meetingId");
+  if (!meetingId) {
+    if (window.crypto && window.crypto.randomUUID) {
+      meetingId = window.crypto.randomUUID();
+    } else {
+      meetingId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    }
+    window.sessionStorage.setItem("meetingId", meetingId);
+  }
+  return meetingId;
+}
+
+async function saveSummaryToBackend(summaryHtml) {
+  const meetingId = getOrCreateMeetingId();
+  const { email: hostEmail, meetingDate } = hostContext || getOrPromptHostContext();
+
+  try {
+    const response = await fetch("/api/summaries", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ meetingId, summaryHtml, hostEmail, meetingDate })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) {
+      console.error("Failed to save summary", data);
+    } else {
+      console.log("Summary saved with id:", data.id);
+    }
+  } catch (err) {
+    console.error("Error calling /api/summaries:", err);
+  }
+}
+
+function getOrPromptHostContext() {
+  try {
+    const cached = window.sessionStorage.getItem("hostContext");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed?.email && parsed?.meetingDate) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Unable to parse cached host context", err);
+  }
+
+  return promptForHostContext();
+}
+
+function promptForHostContext() {
+  let email = "";
+  while (!email) {
+    const input = window.prompt("Enter host email (required to save summaries):", "");
+    if (input === null) {
+      alert("Email is required to continue.");
+      continue;
+    }
+    email = input.trim();
+    if (!email) {
+      alert("Email cannot be empty.");
+    }
+  }
+
+  const defaultDate = new Date().toISOString().slice(0, 10);
+  let meetingDate = "";
+  while (!meetingDate) {
+    const input = window.prompt("Enter meeting date (YYYY-MM-DD):", defaultDate);
+    if (input === null) {
+      alert("Meeting date is required to continue.");
+      continue;
+    }
+    meetingDate = input.trim();
+    if (!meetingDate) {
+      alert("Meeting date cannot be empty.");
+    }
+  }
+
+  const context = { email, meetingDate };
+  window.sessionStorage.setItem("hostContext", JSON.stringify(context));
+  return context;
+}
+
+// Share this host's email with others once socket is connected
+socket.on("connect", () => {
+  const ctx = hostContext || getOrPromptHostContext();
+  if (ctx?.email) {
+    socket.emit("host-info", { email: ctx.email });
+  }
+});
+
+// Receive other peers' email information
+socket.on("peer-info", (data) => {
+  if (!data?.socketId || !data.email) return;
+  peerInfo[data.socketId] = { email: data.email };
+  const label = document.getElementById(`peer-label-${data.socketId}`);
+  if (label) {
+    label.innerText = data.email;
+  }
+});
 
 // Load face-api.js models
 async function loadFaceAPI() {
@@ -41,9 +192,15 @@ async function initMedia() {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localVideo.srcObject = localStream;
     setupVolumeMonitoring(localStream, localVideoContainer);
+    if (cameraLoading) {
+      cameraLoading.style.display = "none";
+    }
   } catch (err) {
     console.error("Error accessing media devices:", err);
     alert(`Error accessing media devices: ${err.name} - ${err.message}`);
+    if (cameraLoading) {
+      cameraLoading.querySelector("p").textContent = "Camera error. Check permissions.";
+    }
   }
 }
 
@@ -86,8 +243,10 @@ function createPeerConnection(socketId, isCaller) {
             videoContainer.appendChild(remoteVideo);
 
             const nameOverlay = document.createElement('div');
+            nameOverlay.id = `peer-label-${socketId}`;
             nameOverlay.classList.add('absolute', 'bottom-0', 'left-0', 'bg-black/50', 'text-white', 'text-xs', 'px-2', 'py-1');
-            nameOverlay.innerText = `Peer ${socketId.substring(0, 5)}`;
+            const info = peerInfo[socketId];
+            nameOverlay.innerText = info?.email || `Peer ${socketId.substring(0, 5)}`;
             videoContainer.appendChild(nameOverlay);
 
             remoteVideosContainer.appendChild(videoContainer);
