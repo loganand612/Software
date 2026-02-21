@@ -543,6 +543,11 @@ io.on("connection", (socket) => {
     });
   });
 
+  // Forward Emoji Reactions
+  socket.on("emoji-reaction", (data) => {
+      socket.to(data.meetingId).emit("emoji-reaction", { socketId: socket.id, emoji: data.emoji });
+  });
+  
   // Handle Chat Messages
   socket.on("chat-message", (data) => {
     // Forward the message to everyone else in the same meeting room
