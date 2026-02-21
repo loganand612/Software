@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI-Meeting Buddy - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-slate-950 text-slate-100">
+    <header class="border-b border-slate-800 bg-slate-900/70 backdrop-blur sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-semibold">Dashboard</h1>
+                <p id="userMeta" class="text-xs text-slate-400"></p>
+            </div>
+            <button id="logoutBtn" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm">Logout</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <section class="lg:col-span-2 space-y-6">
+            <div id="managerCreateCard" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h2 class="font-semibold mb-4">Host a Meeting</h2>
+                <form id="createMeetingForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input id="meetingName" placeholder="Meeting Name *" required
+                        class="md:col-span-2 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5" />
+                    <textarea id="meetingDescription" placeholder="Description (optional)"
+                        class="md:col-span-2 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 h-20"></textarea>
+                    <input id="meetingStartsAt" type="datetime-local"
+                        class="rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5" />
+                    <input id="meetingEndsAt" type="datetime-local"
+                        class="rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5" />
+                    <button type="submit"
+                        class="md:col-span-2 rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 font-semibold">Create &
+                        Open Meeting</button>
+                </form>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h2 class="font-semibold mb-4">Join a Meeting</h2>
+                <form id="joinMeetingForm" class="flex flex-col sm:flex-row gap-3">
+                    <input id="joinMeetingId" placeholder="Paste meeting link or meeting ID" required
+                        class="flex-1 rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5" />
+                    <button type="submit" class="rounded-xl bg-slate-700 hover:bg-slate-600 px-5 py-2.5">Join</button>
+                </form>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h2 class="font-semibold mb-4">Meeting History</h2>
+                <div id="historyList" class="space-y-3 text-sm text-slate-300"></div>
+            </div>
+        </section>
+
+        <aside class="space-y-6">
+            <div id="managerUserCard" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h2 class="font-semibold mb-4">Create User Account</h2>
+                <form id="createUserForm" class="space-y-3">
+                    <input id="newUserName" placeholder="Full Name" required
+                        class="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5" />
+                    <input id="newUserEmail" type="email" placeholder="Email" required
+                        class="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5" />
+                    <input id="newUserPassword" type="password" minlength="8" placeholder="Password (min 8 chars)"
+                        required class="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5" />
+                    <select id="newUserRole" class="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5">
+                        <option value="employee">Employee</option>
+                        <option value="manager">Manager</option>
+                    </select>
+                    <button type="submit"
+                        class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 font-semibold">Create
+                        User</button>
+                </form>
+            </div>
+
+            <div id="objectivesCard" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-semibold">Current Objectives</h2>
+                    <button id="refreshObjectivesBtn"
+                        class="text-xs px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600">Refresh</button>
+                </div>
+                <p id="objectivesMessage" class="text-xs text-slate-400 mb-3"></p>
+
+                <label class="text-xs text-slate-400">To Start</label>
+                <textarea id="toStartText"
+                    class="w-full mt-1 mb-3 h-28 rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-sm"></textarea>
+
+                <label class="text-xs text-slate-400">Ongoing</label>
+                <textarea id="ongoingText"
+                    class="w-full mt-1 mb-3 h-28 rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-sm"></textarea>
+
+                <button id="saveObjectivesBtn"
+                    class="w-full rounded-xl bg-blue-600 hover:bg-blue-700 py-2.5 text-sm font-semibold">Save
+                    Objectives</button>
+            </div>
+        </aside>
+    </main>
+
+    <script src="/dashboard.js"></script>
+</body>
+
+</html>
