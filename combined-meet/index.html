@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI-Meeting Buddy - Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: light dark; }
+    html, body { height: 100%; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+  </style>
+</head>
+<body class="min-h-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-slate-100">
+  <div class="flex flex-col h-dvh">
+    <!-- Header -->
+    <header class="border-b border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 sticky top-0 z-10">
+      <div class="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="size-10 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 grid place-items-center text-white font-bold text-lg shadow-lg">AB</div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">AI-Meeting Buddy</h1>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex items-center justify-center px-4 py-12">
+      <div class="max-w-4xl w-full text-center space-y-8">
+        <!-- Hero Section -->
+        <div class="space-y-4">
+          <h2 class="text-5xl md:text-6xl font-bold tracking-tight">
+            <span class="bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">AI-Powered</span>
+            <br />
+            Video Meetings
+          </h2>
+          <p class="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+            Connect, collaborate, and analyze with real-time engagement tracking and AI-generated meeting summaries.
+          </p>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+          <div class="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur">
+            <div class="size-12 rounded-lg bg-sky-100 dark:bg-sky-900/30 grid place-items-center mb-4 mx-auto">
+              <svg class="size-6 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 class="font-semibold text-lg mb-2">Video Calls</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-400">Crystal-clear peer-to-peer video communication</p>
+          </div>
+
+          <div class="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur">
+            <div class="size-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 grid place-items-center mb-4 mx-auto">
+              <svg class="size-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <h3 class="font-semibold text-lg mb-2">AI Analytics</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-400">Real-time engagement tracking and insights</p>
+          </div>
+
+          <div class="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur">
+            <div class="size-12 rounded-lg bg-green-100 dark:bg-green-900/30 grid place-items-center mb-4 mx-auto">
+              <svg class="size-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 class="font-semibold text-lg mb-2">AI Summaries</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-400">Automated meeting summaries and action items</p>
+          </div>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
+          <a href="/meeting" class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 text-white px-8 py-4 text-lg font-semibold shadow-lg hover:from-sky-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-all transform hover:scale-105">
+            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Start Meeting
+          </a>
+          <button id="joinMeetingBtn" class="inline-flex items-center gap-2 rounded-lg border-2 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-8 py-4 text-lg font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 transition-all">
+            Join Meeting
+          </button>
+        </div>
+
+        <!-- Join Meeting Modal -->
+        <div id="joinModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+          <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Join Meeting</h3>
+              <button id="closeModal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              Enter the meeting link or meeting ID to join
+            </p>
+            <form id="joinForm" class="space-y-4">
+              <div>
+                <label for="meetingLink" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Meeting Link or ID
+                </label>
+                <input
+                  type="text"
+                  id="meetingLink"
+                  placeholder="https://example.com/meeting?meetingId=xxx or just the meeting ID"
+                  class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div class="flex gap-3">
+                <button
+                  type="submit"
+                  class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 text-white px-4 py-2 font-semibold hover:from-sky-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transition-all"
+                >
+                  Join
+                </button>
+                <button
+                  type="button"
+                  id="cancelJoin"
+                  class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 px-4 py-2 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="mt-16 p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur">
+          <h3 class="font-semibold text-lg mb-4">Features</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left text-sm text-slate-600 dark:text-slate-400">
+            <div class="flex items-start gap-2">
+              <svg class="size-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Multi-peer video conferencing</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <svg class="size-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Real-time engagement tracking</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <svg class="size-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>AI-powered meeting summaries</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <svg class="size-5 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Connection quality monitoring</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200/60 dark:border-slate-800 px-4 py-4 text-xs text-slate-500 text-center">
+      <div class="mx-auto max-w-7xl">AI-Meeting Buddy • WebRTC • Socket.IO • AI-Powered Analytics</div>
+    </footer>
+  </div>
+
+  <script>
+    // Join Meeting Modal Functionality
+    const joinMeetingBtn = document.getElementById('joinMeetingBtn');
+    const joinModal = document.getElementById('joinModal');
+    const closeModal = document.getElementById('closeModal');
+    const cancelJoin = document.getElementById('cancelJoin');
+    const joinForm = document.getElementById('joinForm');
+    const meetingLinkInput = document.getElementById('meetingLink');
+
+    // Open modal
+    joinMeetingBtn.addEventListener('click', () => {
+      joinModal.classList.remove('hidden');
+      joinModal.classList.add('flex');
+      meetingLinkInput.focus();
+    });
+
+    // Close modal
+    const closeModalFunc = () => {
+      joinModal.classList.add('hidden');
+      joinModal.classList.remove('flex');
+      meetingLinkInput.value = '';
+    };
+
+    closeModal.addEventListener('click', closeModalFunc);
+    cancelJoin.addEventListener('click', closeModalFunc);
+
+    // Close on backdrop click
+    joinModal.addEventListener('click', (e) => {
+      if (e.target === joinModal) {
+        closeModalFunc();
+      }
+    });
+
+    // Handle form submission
+    joinForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const meetingLink = meetingLinkInput.value.trim();
+      
+      if (!meetingLink) {
+        alert('Please enter a meeting link or ID');
+        return;
+      }
+
+      // Extract meeting ID from URL or use the input directly
+      let meetingId = meetingLink;
+      
+      // If it's a URL, try to extract meetingId parameter
+      try {
+        const url = new URL(meetingLink);
+        const params = new URLSearchParams(url.search);
+        meetingId = params.get('meetingId') || meetingId;
+      } catch (e) {
+        // Not a valid URL, treat as meeting ID directly
+        meetingId = meetingLink;
+      }
+
+      // Redirect to meeting page with meeting ID
+      if (meetingId) {
+        window.location.href = `/meeting?meetingId=${encodeURIComponent(meetingId)}`;
+      } else {
+        alert('Could not extract meeting ID. Please check your link.');
+      }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !joinModal.classList.contains('hidden')) {
+        closeModalFunc();
+      }
+    });
+  </script>
+</body>
+</html>
+
