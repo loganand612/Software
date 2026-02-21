@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+  <title>AI Meeting Buddy - Room</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Fixes the cropped screenshare */
+    .video-container.is-screenshare video { 
+      object-fit: contain !important; 
+    }
+
+    :root { color-scheme: light dark; }
+    html, body { 
+      height: 100dvh; 
+      margin: 0;
+      padding: 0;
+      overflow: hidden; 
+      background-color: #202124; /* Google Meet Dark Background */
+    }
+    body { 
+      font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+    }
+    
+    /* --- THE GOOGLE MEET DYNAMIC GRID --- */
+    .meet-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-content: center;
+      gap: 0.75rem; 
+      height: 100%;
+      width: 100%;
+      padding: 1rem;
+    }
+
+    .video-container {
+      flex: 1 1 calc(33.333% - 1rem); /* Max 3 columns wide */
+      min-width: 280px;
+      max-width: 100%;
+      max-height: calc(100dvh - 120px);
+      aspect-ratio: 16 / 9;
+      background-color: #3c4043; 
+      border-radius: 0.75rem;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: all 0.4s ease-in-out; /* Smooth shuffling animation */
+    }
+
+    @keyframes floatUp {
+      0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+      20% { transform: translate(-50%, -20px) scale(1.2); opacity: 1; }
+      80% { transform: translate(-50%, -80px) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -100px) scale(0.8); opacity: 0; }
+    }
+    .animate-float-up { animation: floatUp 2s ease-out forwards; }
+
+    video { 
+      width: 100%;
+      height: 100%;
+      object-fit: cover; 
+    }
+    /* ------------------------------------ */
+
+    /* --- SPOTLIGHT LAYOUT (ACTIVATES DURING SCREENSHARE) --- */
+    .meet-grid.has-screenshare {
+      align-content: flex-start; /* Push the grid to the top */
+    }
+    
+    .video-container.is-screenshare {
+      flex: 1 1 100%; /* Take up the entire top row */
+      max-width: 100%;
+      height: 65dvh;
+      max-height: 65dvh;
+      order: -1; /* Force it to be the first item */
+      border: 2px solid #8ab4f8; /* Highlight the active screen */
+      background-color: #000;
+    }
+
+    /* Shrink everyone else to the bottom */
+    .meet-grid.has-screenshare .video-container:not(.is-screenshare) {
+      flex: 0 1 200px;
+      height: 15dvh;
+      max-height: 150px;
+      min-width: 150px;
+    }
+
+    .is-speaking {
+      box-shadow: 0 0 0 4px #8ab4f8; /* Google Meet blue active speaker ring */
+      transition: box-shadow 0.2s ease-in-out;
+    }
+    
+    .video-status-overlay {
+      display: none;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background-color: rgba(32, 33, 36, 0.6);
+      padding: 0.5rem;
+      border-radius: 50%;
+      backdrop-filter: blur(4px);
+    }
+    .is-muted .video-status-overlay.mute-indicator,
+    .camera-off .video-status-overlay.camera-indicator {
+      display: block;
+    }
+    .loading-spinner {
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      border-top: 3px solid #8ab4f8;
+      width: 32px;
+      height: 32px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(107, 114, 128, 0.8); }
+  </style>
+</head>
+<body class="text-slate-100 flex flex-col">
+
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[40] hidden opacity-0 transition-opacity duration-300 md:hidden"></div>
+
+  <main class="flex-1 flex overflow-hidden relative">
+    
+    <section class="flex-1 flex flex-col relative">
+       
+       <div class="flex-1 overflow-y-auto pb-20 md:pb-24"> 
+         <div class="meet-grid">
+            
+            <div id="local-video-container" class="video-container group">
+               <div id="camera-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-[#202124] text-slate-300 text-sm gap-3 z-10">
+                  <div class="loading-spinner"></div>
+                  <p>Starting camera...</p>
+               </div>
+               <video id="localVideo" autoplay playsinline muted></video>
+               
+               <div class="absolute bottom-3 left-3 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-md text-xs font-medium text-white shadow-sm flex items-center gap-2">
+                 You
+               </div>
+               
+               <div class="video-status-overlay mute-indicator bg-rose-500 text-white shadow-lg shadow-rose-500/20">
+                 <svg class="size-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14q.825 0 1.413-.588T14 12V6q0-.825-.588-1.413T12 4q-.825 0-1.413.588T10 6v6q0 .825.588 1.413T12 14Zm-1 7v-3.075q-2.6-.35-4.3-2.325T5 11H7q0 2.075 1.463 3.538T12 16q2.075 0 3.538-1.463T17 11h2q0 2.5-1.7 4.475T13 17.925V21h-2Zm1-6q.425 0 .713-.288T13 12V6q0-.425-.288-.713T12 5q-.425 0-.713.288T11 6v6q0 .425.288.713T12 8Z"/></svg>
+               </div>
+               <div class="video-status-overlay camera-indicator top-14">
+                 <svg class="size-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l2.29 2.29c.63.63 1.71.18 1.71-.71V8.91c0-.89-1.08-1.34-1.71-.71L17 10.5zM15 16H5V8h10v8zM2 2.27L4.28 4.55l-1.73 1.73L1 7.83V19c0 .55.45 1 1 1h13.17l2.55 2.55L18.27 24l-16-16L2.27 2z"/></svg>
+               </div>
+            </div>
+
+            <div id="remote-videos" class="contents"></div>
+            
+         </div>
+       </div>
+
+       <div class="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-30 w-[90%] md:w-auto max-w-sm flex justify-center">
+          <div class="bg-[#3c4043]/95 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-2xl shadow-2xl flex items-center justify-center gap-3 w-full md:w-auto">
+             
+             <button id="mobileMenuBtn" class="md:hidden p-3 rounded-full bg-transparent hover:bg-white/10 text-white transition-all outline-none" title="Tools">
+                <svg class="size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
+             </button>
+
+             <button id="muteBtn" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-white/10 text-white transition-all outline-none flex justify-center shadow-sm border border-white/5" title="Toggle Microphone">
+                <svg class="size-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14q.825 0 1.413-.588T14 12V6q0-.825-.588-1.413T12 4q-.825 0-1.413.588T10 6v6q0 .825.588 1.413T12 14Zm-1 7v-3.075q-2.6-.35-4.3-2.325T5 11H7q0 2.075 1.463 3.538T12 16q2.075 0 3.538-1.463T17 11h2q0 2.5-1.7 4.475T13 17.925V21h-2Zm1-6q.425 0 .713-.288T13 12V6q0-.425-.288-.713T12 5q-.425 0-.713.288T11 6v6q0 .425.288.713T12 8Z"/></svg>
+             </button>
+             
+             <button id="cameraBtn" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-white/10 text-white transition-all outline-none flex justify-center shadow-sm border border-white/5" title="Toggle Camera">
+                <svg class="size-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l2.29 2.29c.63.63 1.71.18 1.71-.71V8.91c0-.89-1.08-1.34-1.71-.71L17 10.5zM15 16H5V8h10v8z"/></svg>
+             </button>
+
+             <button id="screenShareBtn" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-white/10 text-white transition-all outline-none flex justify-center shadow-sm border border-white/5" title="Share Screen">
+                <svg class="size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25" /></svg>
+             </button>
+             
+             <div class="relative group flex items-center">
+                <button id="emojiMenuBtn" class="p-3.5 rounded-full bg-[#3c4043] hover:bg-white/10 text-white transition-all outline-none flex justify-center shadow-sm border border-white/5" title="React">
+                   <svg class="size-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z" /></svg>
+                </button>
+                <div class="absolute bottom-[110%] left-1/2 -translate-x-1/2 hidden group-hover:flex bg-[#28292c] p-2 rounded-xl gap-2 shadow-xl border border-white/10 z-50">
+                    <button class="emoji-reaction text-2xl hover:scale-125 transition-transform" data-emoji="👍">👍</button>
+                    <button class="emoji-reaction text-2xl hover:scale-125 transition-transform" data-emoji="👏">👏</button>
+                    <button class="emoji-reaction text-2xl hover:scale-125 transition-transform" data-emoji="❤️">❤️</button>
+                    <button class="emoji-reaction text-2xl hover:scale-125 transition-transform" data-emoji="😂">😂</button>
+                    <button class="emoji-reaction text-2xl hover:scale-125 transition-transform" data-emoji="😮">😮</button>
+                </div>
+             </div>
+             <div class="w-px h-6 bg-white/10 mx-1"></div>
+
+             <button id="leaveBtn" class="px-6 py-3.5 rounded-full bg-[#ea4335] hover:bg-[#d93025] text-white font-semibold text-sm transition-all shadow-lg outline-none flex items-center justify-center gap-2 ml-2">
+               <svg class="size-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+             </button>
+          </div>
+       </div>
+    </section>
+
+<aside id="rightSidebar" class="fixed inset-y-0 right-0 z-50 w-80 md:w-80 lg:w-96 bg-[#202124] border-l border-white/10 flex flex-col shrink-0 transform transition-transform duration-300 translate-x-full md:relative md:translate-x-0 shadow-2xl md:shadow-none">
+       
+       <div class="border-b border-white/10 shrink-0 bg-[#28292c]">
+          <div class="h-14 flex items-center justify-between px-5 md:hidden">
+            <h2 class="text-sm font-semibold text-white tracking-wide">Menu</h2>
+            <button id="closeSidebarBtn" class="p-2 -mr-2 text-slate-400 hover:text-white transition-colors">
+               <svg class="size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div class="flex px-4 pt-3">
+             <button id="tabAiBtn" class="flex-1 pb-3 text-sm font-bold border-b-2 border-[#8ab4f8] text-[#8ab4f8] transition-colors">AI Tools</button>
+             <button id="tabChatBtn" class="flex-1 pb-3 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition-colors">Meeting Chat</button>
+          </div>
+       </div>
+
+       <div class="flex-1 overflow-hidden relative">
+           <div id="panelAi" class="absolute inset-0 overflow-y-auto p-5 space-y-6">
+             <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Engagement Level</span>
+                </div>
+                <div class="bg-[#3c4043] border border-white/5 rounded-xl p-4 text-center">
+                   <div id="engagementScore" class="text-2xl font-bold text-[#8ab4f8]">0%</div>
+                   <p class="text-[10px] text-slate-400 mt-1 uppercase font-medium">Face Detection Score</p>
+                </div>
+             </div>
+
+             <div class="space-y-3">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <svg class="size-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  Meeting Notes
+                </h3>
+                <textarea id="notesInput" class="w-full h-28 text-sm p-3 rounded-xl border border-white/10 bg-[#303134] text-white focus:border-[#8ab4f8] focus:ring-1 focus:ring-[#8ab4f8] outline-none resize-none placeholder:text-slate-500" placeholder="- Discussed roadmap...&#10;- Next steps..."></textarea>
+                <button id="generateSummaryBtn" class="w-full py-2.5 bg-[#8ab4f8] hover:bg-[#aecbfa] text-slate-900 rounded-xl text-sm font-bold transition-all shadow-sm">
+                   Generate AI Summary
+                </button>
+                <div id="summary-box" class="mt-2 p-4 text-sm text-slate-300 bg-[#303134] rounded-xl border border-white/5 min-h-[100px]">
+                   <span class="italic text-slate-500 text-xs">AI summary will generate here...</span>
+                </div>
+             </div>
+           </div>
+
+           <div id="panelChat" class="hidden absolute inset-0 flex flex-col bg-[#202124]">
+             <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                 <div class="text-center text-xs text-slate-500 my-2">Welcome to the meeting chat!</div>
+             </div>
+             <div class="p-4 bg-[#28292c] border-t border-white/5 shrink-0">
+                <div class="flex gap-2">
+                   <input type="text" id="chatInput" class="flex-1 bg-[#3c4043] border border-white/10 text-white text-sm rounded-full px-4 py-2.5 outline-none focus:border-[#8ab4f8] placeholder:text-slate-500" placeholder="Send a message...">
+                   <button id="sendChatBtn" class="bg-[#8ab4f8] hover:bg-[#aecbfa] text-slate-900 p-2.5 rounded-full transition-colors shrink-0">
+                      <svg class="size-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                   </button>
+                </div>
+             </div>
+           </div>
+       </div>
+    </aside>
+
+  </main>
+
+  <div id="leaveModal" class="hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-[#202124] border border-white/10 p-6 rounded-2xl max-w-sm w-full text-center shadow-2xl">
+        <h3 class="text-xl font-bold text-white mb-4">Leave Meeting?</h3>
+        
+        <div id="hostOptions" class="hidden flex-col gap-3 mb-4">
+           <button id="endCallBtn" class="w-full bg-[#ea4335] hover:bg-[#d93025] text-white py-2.5 rounded-xl font-semibold shadow-md transition-all">End Call for Everyone</button>
+           <button id="leaveOnlyBtn" class="w-full bg-[#3c4043] hover:bg-[#4a4d51] text-white py-2.5 rounded-xl font-semibold transition-all">Leave Meeting (Keep active)</button>
+        </div>
+
+        <div id="guestOptions" class="hidden flex-col gap-3 mb-4">
+           <button id="confirmLeaveBtn" class="w-full bg-[#ea4335] hover:bg-[#d93025] text-white py-2.5 rounded-xl font-semibold shadow-md transition-all">Yes, Leave</button>
+        </div>
+
+        <button id="cancelLeaveBtn" class="w-full text-sm font-medium text-slate-400 hover:text-white py-2 transition-all">Cancel</button>
+      </div>
+  </div>
+
+  <div id="toastNotification" class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[120] bg-white text-slate-900 px-6 py-3 rounded-lg shadow-2xl transition-all duration-300 opacity-0 pointer-events-none -translate-y-10 border border-slate-200 flex items-center gap-3 whitespace-nowrap font-medium">
+      <svg class="size-5 text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      <span id="toastMessage" class="text-sm"></span>
+  </div>
+
+  <div id="postCallScreen" class="hidden fixed inset-0 z-[110] bg-[#202124] flex flex-col items-center justify-center px-4 text-center">
+      <div class="size-16 rounded-full bg-[#3c4043] flex items-center justify-center mb-6 shadow-sm">
+        <svg class="size-8 text-slate-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </div>
+      <h2 class="text-3xl font-bold text-white mb-2" id="postCallTitle">You left the meeting</h2>
+      <p class="text-slate-400 mb-8" id="postCallSubtitle">The meeting is still ongoing.</p>
+      
+      <div class="flex flex-col w-full sm:w-auto sm:flex-row gap-4">
+        <button id="rejoinBtn" class="bg-[#8ab4f8] hover:bg-[#aecbfa] text-slate-900 px-8 py-3 rounded-full font-bold shadow-md transition-all hidden">Rejoin Meeting</button>
+        <button id="goHomeBtn" class="bg-[#3c4043] hover:bg-[#4a4d51] text-white px-8 py-3 rounded-full font-bold shadow-sm transition-all">Go to Home Page</button>
+      </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="script.js"></script>
+  
+  <script>
+    // Mobile Sidebar Toggle Logic
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const rightSidebar = document.getElementById('rightSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+
+    function toggleSidebar() {
+      const isClosed = rightSidebar.classList.contains('translate-x-full');
+      if (isClosed) {
+        rightSidebar.classList.remove('translate-x-full');
+        sidebarOverlay.classList.remove('hidden');
+        setTimeout(() => sidebarOverlay.classList.remove('opacity-0'), 10);
+      } else {
+        rightSidebar.classList.add('translate-x-full');
+        sidebarOverlay.classList.add('opacity-0');
+        setTimeout(() => sidebarOverlay.classList.add('hidden'), 300);
+      }
+    }
+
+    mobileMenuBtn.addEventListener('click', toggleSidebar);
+    closeSidebarBtn.addEventListener('click', toggleSidebar);
+    sidebarOverlay.addEventListener('click', toggleSidebar);
+  </script>
+</body>
+</html>
