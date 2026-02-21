@@ -877,6 +877,14 @@ io.on("connection", (socket) => {
         });
     });
 
+    socket.on("emoji-reaction", (data) => {
+        socket.to(data.meetingId).emit("emoji-reaction", {
+            socketId: socket.id,
+            emoji: data.emoji,
+            email: socket.user?.email || "Unknown"
+        });
+    });
+
     socket.on("request-screenshare", (data) => {
         socket.to(data.meetingId).emit("screenshare-requested", {
             socketId: socket.id,
