@@ -763,6 +763,7 @@ io.use((socket, next) => {
 const socketMeetingMap = new Map();
 const peerInfoMap = {};
 const disconnectedUsers = {};
+const meetingScreenShareMap = new Map(); // Track active screen share per meeting: meetingId -> socketId
 
 io.on("connection", (socket) => {
     const userId = socket.user.id;
@@ -877,7 +878,29 @@ io.on("connection", (socket) => {
         });
     });
 
+    socket.on("emoji-reaction", (data) => {
+        socket.to(data.meetingId).emit("emoji-reaction", {
+            socketId: socket.id,
+            emoji: data.emoji
+        });
+    });
+
     socket.on("request-screenshare", (data) => {
+        const meetingId = data?.meetingId;
+        if (!meetingId) return;
+
+        // Check if someone is already sharing their screen in this meeting
+        const activeSharingSocketId = meetingScreenShareMap.get(meetingId);
+        if (activeSharingSocketId && activeSharingSocketId !== socket.id) {
+            // Someone else is already sharing - auto-deny
+            io.to(socket.id).emit("screenshare-approved", { 
+                approved: false,
+                reason: "Someone else is already sharing their screen in this meeting"
+            });
+            return;
+        }
+
+        // No one is sharing, ask the host for permission
         socket.to(data.meetingId).emit("screenshare-requested", {
             socketId: socket.id,
             email: socket.user.email,
@@ -889,6 +912,19 @@ io.on("connection", (socket) => {
     });
 
     socket.on("screenshare-state", (data) => {
+        const meetingId = data?.meetingId;
+        if (!meetingId) return;
+
+        // Track active screen share
+        if (data.isSharing) {
+            meetingScreenShareMap.set(meetingId, socket.id);
+        } else {
+            // Check if this socket was the one sharing
+            if (meetingScreenShareMap.get(meetingId) === socket.id) {
+                meetingScreenShareMap.delete(meetingId);
+            }
+        }
+
         socket.to(data.meetingId).emit("screenshare-state-changed", {
             socketId: socket.id,
             isSharing: data.isSharing,
@@ -935,6 +971,11 @@ io.on("connection", (socket) => {
 
         delete peerInfoMap[socket.id];
         socketMeetingMap.delete(socket.id);
+
+        // Clean up screen share tracking if this user was sharing
+        if (meetingId && meetingScreenShareMap.get(meetingId) === socket.id) {
+            meetingScreenShareMap.delete(meetingId);
+        }
 
         if (meetingId) {
             socket.to(meetingId).emit("peer-disconnected", { socketId: socket.id });

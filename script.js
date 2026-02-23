@@ -328,56 +328,61 @@ function createPeerConnection(socketId, isCaller) {
     };
 
     pc.ontrack = event => {
-        let remoteVideo = document.getElementById(`video-${socketId}`);
+        const trackStream = event.streams[0];
+        const isScreenShare = (trackStream.getVideoTracks().length > 0 && trackStream.getVideoTracks()[0].label.includes('screen')) || (trackStream.id && trackStream.id.includes('screen'));
+        
+        const trackSuffix = isScreenShare ? '-screen' : '';
+        const videoId = `video-${socketId}${trackSuffix}`;
+        const containerId = `video-container-${socketId}${trackSuffix}`;
+        
+        let remoteVideo = document.getElementById(videoId);
         if (!remoteVideo) {
             remoteVideo = document.createElement('video');
-            remoteVideo.id = `video-${socketId}`;
+            remoteVideo.id = videoId;
             remoteVideo.autoplay = true;
             remoteVideo.playsinline = true;
 
             const videoContainer = document.createElement('div');
-            videoContainer.id = `video-container-${socketId}`;
+            videoContainer.id = containerId;
             videoContainer.classList.add('video-container', 'rounded-lg', 'overflow-hidden');
+            if (isScreenShare) {
+                videoContainer.classList.add('is-screenshare');
+            }
             videoContainer.appendChild(remoteVideo);
 
             const nameOverlay = document.createElement('div');
-            nameOverlay.id = `peer-label-${socketId}`;
-            nameOverlay.classList.add('absolute', 'bottom-0', 'left-0', 'bg-black/50', 'text-white', 'text-xs', 'px-2', 'py-1');
+            nameOverlay.id = `peer-label-${socketId}${trackSuffix}`;
+            nameOverlay.classList.add('absolute', 'bottom-3', 'left-3', 'bg-black/50', 'text-white', 'text-xs', 'px-2', 'py-1', 'rounded');
             const info = peerInfo[socketId];
-            nameOverlay.innerText = info?.email || `Peer ${socketId.substring(0, 5)}`;
+            const label = isScreenShare ? `${info?.email || 'Peer'}'s Screen` : (info?.email || `Peer ${socketId.substring(0, 5)}`);
+            nameOverlay.innerText = label;
             videoContainer.appendChild(nameOverlay);
 
-            // --- ADD THIS NEW BUTTON BLOCK ---
-            const makeHostBtn = document.createElement('button');
-            makeHostBtn.id = `make-host-${socketId}`;
-            makeHostBtn.innerText = "Make Host";
-            // Button is hidden by default unless you are the host
-            makeHostBtn.className = `make-host-btn absolute top-2 right-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md transition-all z-10 ${isMeetingHost ? '' : 'hidden'}`;
+            if (!isScreenShare) {
+                // Only add make-host button for camera streams, not screen shares
+                const makeHostBtn = document.createElement('button');
+                makeHostBtn.id = `make-host-${socketId}`;
+                makeHostBtn.innerText = "Make Host";
+                makeHostBtn.className = `make-host-btn absolute top-2 right-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md transition-all z-10 ${isMeetingHost ? '' : 'hidden'}`;
 
-            makeHostBtn.onclick = () => {
-                const targetEmail = peerInfo[socketId]?.email || 'this participant';
-                if (confirm(`Transfer host role to ${targetEmail}? You will become a regular participant.`)) {
-                    const meetingId = new URLSearchParams(window.location.search).get("meetingId");
-
-                    // Tell server to transfer
-                    socket.emit("manual-transfer-host", { targetSocketId: socketId, meetingId });
-
-                    // Update our own state locally
-                    isMeetingHost = false;
-                    updateHostUI(); // Hides the buttons
-                    showToast(`Host role transferred to ${targetEmail}`);
-                }
-            };
-            videoContainer.appendChild(makeHostBtn);
-            // --- END OF NEW BUTTON BLOCK ---
+                makeHostBtn.onclick = () => {
+                    const targetEmail = peerInfo[socketId]?.email || 'this participant';
+                    if (confirm(`Transfer host role to ${targetEmail}? You will become a regular participant.`)) {
+                        const meetingId = new URLSearchParams(window.location.search).get("meetingId");
+                        socket.emit("manual-transfer-host", { targetSocketId: socketId, meetingId });
+                        isMeetingHost = false;
+                        updateHostUI();
+                        showToast(`Host role transferred to ${targetEmail}`);
+                    }
+                };
+                videoContainer.appendChild(makeHostBtn);
+            }
 
             remoteVideosContainer.appendChild(videoContainer);
         }
 
-        console.log("Track received from", socketId);
+        console.log("Track received from", socketId, "isScreenShare:", isScreenShare);
 
-        // Fix: Only set the srcObject if it hasn't been set to this stream yet
-        // This prevents the video from stuttering/resetting when the audio track arrives
         if (remoteVideo.srcObject !== event.streams[0]) {
             remoteVideo.srcObject = event.streams[0];
         }
@@ -388,7 +393,10 @@ function createPeerConnection(socketId, isCaller) {
 
         if (event.track.kind === 'audio') {
             const remoteStream = new MediaStream([event.track]);
-            setupVolumeMonitoring(remoteStream, document.getElementById(`video-container-${socketId}`));
+            const cameraContainer = document.getElementById(`video-container-${socketId}`);
+            if (cameraContainer) {
+                setupVolumeMonitoring(remoteStream, cameraContainer);
+            }
         }
     };
 
@@ -1087,6 +1095,7 @@ socket.on("chat-message", (data) => {
 let screenStream = null;
 let isScreenSharing = false;
 let isGlobalSharing = false; // Tracks if ANYONE in the room is sharing
+let screenVideoContainer = null; // Reference to the screen container
 const screenShareBtn = document.getElementById("screenShareBtn");
 
 // 1. The Button Click
@@ -1117,29 +1126,50 @@ screenShareBtn.onclick = () => {
     }
 };
 
-// 2. Execute the Screen Share
+// 2. Execute the Screen Share - Creates SEPARATE screen container
 async function executeScreenShare() {
     try {
         screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         const screenTrack = screenStream.getVideoTracks()[0];
+        screenTrack.label = 'screen';
 
-        // Swap camera track for screen track
+        // Add screen track to all peer connections
         for (const id in peerConnections) {
             const pc = peerConnections[id];
-            const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-            if (videoSender) videoSender.replaceTrack(screenTrack);
+            pc.addTrack(screenTrack, screenStream);
         }
 
-        localVideo.srcObject = screenStream;
-        isScreenSharing = true;
+        // Create a SEPARATE video container for the screen share
+        const screenVideo = document.createElement('video');
+        screenVideo.id = 'screen-share-video';
+        screenVideo.autoplay = true;
+        screenVideo.playsinline = true;
+        screenVideo.srcObject = screenStream;
 
+        screenVideoContainer = document.createElement('div');
+        screenVideoContainer.id = 'screen-share-container';
+        screenVideoContainer.classList.add('video-container', 'is-screenshare', 'rounded-lg', 'overflow-hidden');
+        screenVideoContainer.appendChild(screenVideo);
+
+        const nameOverlay = document.createElement('div');
+        nameOverlay.innerText = 'Your Screen';
+        nameOverlay.classList.add('absolute', 'bottom-3', 'left-3', 'bg-black/50', 'text-white', 'text-xs', 'px-2', 'py-1', 'rounded');
+        screenVideoContainer.appendChild(nameOverlay);
+
+        // Insert screen container at the beginning (before local camera and all remotes)
+        const grid = document.querySelector('.meet-grid');
+        grid.insertBefore(screenVideoContainer, grid.firstChild);
+
+        // Apply spotlight layout
+        applySpotlightLayout('screen-share-container', true);
+
+        isScreenSharing = true;
         screenShareBtn.classList.add("bg-[#8ab4f8]", "text-slate-900");
         screenShareBtn.classList.remove("bg-[#3c4043]", "text-white");
 
         // Tell everyone to trigger the Spotlight layout
         const meetingId = new URLSearchParams(window.location.search).get("meetingId");
         socket.emit("screenshare-state", { meetingId, isSharing: true });
-        applySpotlightLayout("local-video-container", true);
 
         // Stop sharing if they use the native Chrome/Edge "Stop Sharing" floating bar
         screenTrack.onended = () => {
@@ -1150,20 +1180,20 @@ async function executeScreenShare() {
     }
 }
 
-// 3. Stop Sharing
+// 3. Stop Sharing - Remove screen container, keep camera
 function stopScreenShare() {
     if (!isScreenSharing) return;
-    const cameraTrack = localStream.getVideoTracks()[0];
 
-    // Swap back to camera
-    for (const id in peerConnections) {
-        const pc = peerConnections[id];
-        const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
-        if (videoSender && cameraTrack) videoSender.replaceTrack(cameraTrack);
+    // Remove the screen container
+    if (screenVideoContainer) {
+        screenVideoContainer.remove();
+        screenVideoContainer = null;
     }
 
-    localVideo.srcObject = localStream;
-    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+    // Stop all screen tracks
+    if (screenStream) {
+        screenStream.getTracks().forEach(t => t.stop());
+    }
 
     isScreenSharing = false;
     screenShareBtn.classList.remove("bg-[#8ab4f8]", "text-slate-900");
@@ -1172,7 +1202,7 @@ function stopScreenShare() {
     // Tell everyone to revert to the normal grid
     const meetingId = new URLSearchParams(window.location.search).get("meetingId");
     socket.emit("screenshare-state", { meetingId, isSharing: false });
-    applySpotlightLayout("local-video-container", false);
+    applySpotlightLayout('screen-share-container', false);
 }
 
 // 4. Socket Listeners for Permissions
@@ -1195,7 +1225,8 @@ socket.on("screenshare-approved", (data) => {
         showToast("Host approved your request!");
         executeScreenShare();
     } else {
-        showToast("Host denied your screen share request.");
+        const reason = data.reason || "Host denied your screen share request.";
+        showToast(reason);
     }
 });
 
@@ -1234,3 +1265,29 @@ socket.on("join-error", (data) => {
     alert(data?.error || "Could not join meeting.");
     window.location.href = "/dashboard";
 });
+
+// ==========================================
+// EMOJI REACTIONS
+// ==========================================
+document.querySelectorAll('.emoji-reaction').forEach(btn => {
+    btn.onclick = () => {
+        const emoji = btn.getAttribute('data-emoji');
+        const meetingId = new URLSearchParams(window.location.search).get("meetingId");
+        socket.emit('emoji-reaction', { meetingId: meetingId, emoji });
+        showFloatingEmoji('local-video-container', emoji);
+    }
+});
+
+socket.on('emoji-reaction', (data) => {
+    showFloatingEmoji(`video-container-${data.socketId}`, data.emoji);
+});
+
+function showFloatingEmoji(containerId, emoji) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const el = document.createElement('div');
+    el.innerText = emoji;
+    el.className = 'absolute bottom-10 left-1/2 -translate-x-1/2 text-5xl animate-float-up pointer-events-none z-50';
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+}
